@@ -1,0 +1,16 @@
+# Secrets
+.env
+
+# Python
+backend/venv/
+backend/__pycache__/
+backend/data/chroma/
+*.pyc
+
+# Node / React
+frontend/node_modules/
+frontend/build/
+.DS_Store
+
+# Large PDF files (Optional - keep if you want them on GitHub)
+# backend/knowledge_base/
