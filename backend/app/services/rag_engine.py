@@ -17,37 +17,34 @@ class RAGEngine:
         if q in ["hi", "hello", "hey"]:
             return {"answer": "Hello! I am NetMind AI, how can I help with your networking query?", "sources": []}
 
-        # 2. PROCEED TO RAG: RETRIEVAL
+        # 2. PROCEED TO RAG
         docs = self.vector_db.similarity_search(question, k=3)
         context = "\n\n".join([d.page_content for d in docs])
         
-        # 3. BUILD PROMPT
-        prompt_template = ChatPromptTemplate.from_template(SYSTEM_PROMPT)
-        
-        # --- PROOF: PRINTING THE RAG PIPELINE DATA ---
-        print("\n" + "="*50)
-        print("RAG PIPELINE DEBUG: RETRIEVED CONTEXT")
-        print("="*50)
-        print(context) 
-        print("="*50 + "\n")
-        # ----------------------------------------------
-
-        chain = prompt_template | self.llm | StrOutputParser()
-        
-        # 4. GENERATION
+        prompt = ChatPromptTemplate.from_template(SYSTEM_PROMPT)
+        chain = prompt | self.llm | StrOutputParser()
         response = chain.invoke({"context": context, "question": question})
 
-        # 5. CLEANING LOGIC
-        clean_response = response.replace("*", "").replace("#", "").replace("_", "")
-        clean_response = re.sub(r'\n\s*\n', '\n\n', clean_response).strip()
+        # --- 🏁 THE AGGRESSIVE CLEANER 🏁 ---
+        # Removes hashtags, asterisks, underscores, and plus signs
+        clean_text = re.sub(r'[#*_+\xa0]', '', response) 
+        
+        # Ensures your structure markers stay clear
+        clean_text = clean_text.replace("Note:", "\nSUMMARY\n")
+        
+        # Final cleanup of white space
+        clean_text = re.sub(r'\n\s*\n', '\n\n', clean_text).strip()
 
+        # 3. SOURCE MAPPING
         sources = []
-        if "cannot answer" not in response:
+        # We only show sources if the AI didn't refuse the question
+        if "specialize in computer networking" not in response.lower():
             for d in docs:
                 fname = d.metadata.get("source", "").split("/")[-1]
                 if fname not in [s['name'] for s in sources]:
                     sources.append({"name": fname, "url": RFC_MAP.get(fname, "#")})
 
-        return {"answer": clean_response, "sources": sources}
+        return {"answer": clean_text, "sources": sources}
 
+# 🛠️ THIS IS THE MISSING LINE THAT FIXES THE ERROR:
 rag_engine = RAGEngine()
